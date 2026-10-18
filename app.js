@@ -7,6 +7,7 @@ const movieRoutes = require("./routes/movieRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const favoriteRoutes = require("./routes/favoriteRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const errorHandler = require("./middleware/errorMiddleware");
 
 
 const app = express();
@@ -28,5 +29,16 @@ app.get("/", (req, res) => {
         message: "Movie Review API"
     });
 });
+
+// Handle unknown API endpoints
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: "API endpoint not found"
+    });
+});
+
+// Centralized error handler
+app.use(errorHandler);
 
 module.exports = app;

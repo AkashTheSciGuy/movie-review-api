@@ -1,11 +1,35 @@
 const Movie = require("../models/Movie");
 
-const createMovie = async (req, res) => {
+const createMovie = async (req, res, next) => {
     try {
+
+        const {
+            title,
+            description,
+            releaseYear,
+            duration,
+            language,
+            director,
+            cast,
+            genre,
+            poster,
+            trailer
+        } = req.body;
+
         const movie = await Movie.create({
-            ...req.body,
+            title,
+            description,
+            releaseYear,
+            duration,
+            language,
+            director,
+            cast,
+            genre,
+            poster,
+            trailer,
             createdBy: req.user._id
         });
+
 
         res.status(201).json({
             success: true,
@@ -14,14 +38,11 @@ const createMovie = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        next(error);
     }
 };
 
-const getMovies = async (req, res) => {
+const getMovies = async (req, res, next) => {
     try {
 
         const {
@@ -31,6 +52,24 @@ const getMovies = async (req, res) => {
             limit = 5,
             sort = "latest"
         } = req.query;
+
+
+        const pageNumber = Number(page);
+        const limitNumber = Number(limit);
+
+        if (
+            !Number.isSafeInteger(pageNumber) ||
+            pageNumber < 1 ||
+            !Number.isSafeInteger(limitNumber) ||
+            limitNumber < 1 ||
+            limitNumber > 100
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Page must be a positive integer and limit must be between 1 and 100"
+            });
+        }
+
 
         const query = {};
 
@@ -59,28 +98,25 @@ const getMovies = async (req, res) => {
             .populate("genre", "name")
             .populate("createdBy", "name email")
             .sort(sortOption)
-            .skip((page - 1) * limit)
-            .limit(Number(limit));
+            .skip((pageNumber - 1) * limitNumber)
+            .limit(limitNumber);
 
         const total = await Movie.countDocuments(query);
 
         res.status(200).json({
             success: true,
             total,
-            currentPage: Number(page),
-            totalPages: Math.ceil(total / limit),
+            currentPage: pageNumber,
+            totalPages: Math.ceil(total / limitNumber),
             data: movies
         });
 
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        next(error);
     }
 };
 
-const getMovieById = async (req, res) => {
+const getMovieById = async (req, res, next) => {
     try {
 
         const movie = await Movie.findById(req.params.id)
@@ -100,24 +136,48 @@ const getMovieById = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        next(error);
     }
 };
 
-const updateMovie = async (req, res) => {
+const updateMovie = async (req, res, next) => {
     try {
+
+
+        const allowedFields = [
+            "title",
+            "description",
+            "releaseYear",
+            "duration",
+            "language",
+            "director",
+            "cast",
+            "genre",
+            "poster",
+            "trailer"
+        ];
+
+        const updates = {};
+
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                updates[field] = req.body[field];
+            }
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "No valid movie fields provided"
+            });
+        }
 
         const movie = await Movie.findByIdAndUpdate(
             req.params.id,
-            req.body,
-            {
-                new: true,
-                runValidators: true
-            }
+            updates,
+            { new: true, runValidators: true }
         );
+
 
         if (!movie) {
             return res.status(404).json({
@@ -133,14 +193,11 @@ const updateMovie = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        next(error);
     }
 };
 
-const deleteMovie = async (req, res) => {
+const deleteMovie = async (req, res, next) => {
     try {
 
         const movie = await Movie.findById(req.params.id);
@@ -160,10 +217,7 @@ const deleteMovie = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        next(error);
     }
 };
 

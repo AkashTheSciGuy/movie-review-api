@@ -1,540 +1,256 @@
-# 🎬 Movie Review API
+# Movie Review API
 
-A RESTful Movie Review API built using **Node.js**, **Express.js**, **MongoDB**, **Mongoose**, **JWT Authentication**, and **bcrypt**. This project demonstrates authentication, authorization, CRUD operations, relationships between collections, and protected APIs.
+A REST API for managing movie genres, movies, user reviews, and favorites. Built as a MERN-stack backend minor project with **Node.js**, **Express.js**, **MongoDB Atlas**, and **Mongoose**. Authentication uses JWT and bcryptjs; role-based authorization restricts administrative operations.
 
----
+## Features
 
-# 🚀 Tech Stack
+- User registration, login, and authenticated profile access
+- Full CRUD for **Genres**, **Movies**, and **Reviews**
+- Movie title search, genre filter, rating/date sorting, and pagination
+- Movie-to-Genre, Movie-to-User, Review-to-Movie, and Review-to-User relationships using Mongoose references
+- Movie average rating recalculated when reviews are created, edited, or removed
+- Personal favorites and an admin dashboard
+- Input validation, ObjectId validation, standard HTTP status codes, and centralized error middleware
 
-* Node.js
-* Express.js
-* MongoDB Atlas
-* Mongoose
-* JWT Authentication
-* bcryptjs
-* dotenv
-* CORS
+## Tech stack
 
----
+Node.js · Express.js · MongoDB Atlas · Mongoose · JSON Web Tokens (`jsonwebtoken`) · `bcryptjs` · `dotenv` · `cors` · Nodemon · Postman
 
-# 📁 Project Modules
+## Installation and execution
 
-### 1. Authentication
-
-* Register User
-* Login User
-* Get Profile
-
-### 2. Genre
-
-* Create Genre
-* Get Genres
-
-### 3. Movie
-
-* Create Movie
-* Get All Movies
-* Get Movie By ID
-* Update Movie
-* Delete Movie
-
-### 4. Review
-
-* Add Review
-* Get Reviews
-* Update Review
-* Delete Review
-
-### 5. Favorites
-
-* Add Favorite
-* Get Favorites
-* Remove Favorite
-
----
-
-# 🔗 Module Dependency
-
-```text
-Authentication
-        │
-        ▼
-Genre
-        │
-        ▼
-Movie
-        │
-        ▼
-Review
-        │
-        ▼
-Favorites
-```
-
----
-
-# ⚙️ Installation
-
-## Clone the Repository
-
-```bash
-git clone <repository-url>
-```
-
-```bash
-cd movie-review-api
-```
-
----
-
-## Install Dependencies
+Prerequisites: Node.js/npm, a MongoDB Atlas database, and access to the project source.
 
 ```bash
 npm install
 ```
 
----
-
-## Create Environment File
-
-Create a `.env` file in the project root.
+Create a `.env` file in the project root (never commit it):
 
 ```env
 PORT=5000
-
-MONGO_URI=YOUR_MONGODB_CONNECTION_STRING
-
-JWT_SECRET=YOUR_SECRET_KEY
+MONGO_URI=your_mongodb_atlas_connection_string
+JWT_SECRET=your_long_random_jwt_signing_secret
 ```
 
----
-
-## Run the Application
-
-Development Mode
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-Production Mode
+Or start normally:
 
 ```bash
 npm start
 ```
 
----
+Base URL: `http://localhost:5000`. `GET /` returns the project welcome message. A successful connection requires valid Atlas credentials and suitable network access settings.
 
-# 📮 API Execution Order
+## Authentication and authorization
 
-Follow the APIs in this sequence.
-
-## 1. Register User
-
-**POST**
+Register using `POST /api/auth/register`; login using `POST /api/auth/login`. Both responses include a JWT under `token`. For protected requests, provide:
 
 ```http
-/api/auth/register
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
 ```
 
-Body
+Newly registered accounts have the `user` role. Creating, editing, or deleting genres and movies and accessing the dashboard requires `admin`. The project does **not** expose a public admin-promotion endpoint; any test administrator should be provisioned securely in the database by the developer. Users can create reviews and manage their own reviews and favorites.
+
+## API endpoint reference
+
+| Method | Endpoint | Purpose | Access |
+|---|---|---|---|
+| POST | `/api/auth/register` | Register | Public |
+| POST | `/api/auth/login` | Login / obtain JWT | Public |
+| GET | `/api/auth/profile` | Current user profile | Authenticated |
+| POST | `/api/genres` | Create genre | Admin |
+| GET | `/api/genres` | List genres | Public |
+| GET | `/api/genres/:id` | Get genre | Public |
+| PUT | `/api/genres/:id` | Update genre | Admin |
+| DELETE | `/api/genres/:id` | Delete genre | Admin |
+| POST | `/api/movies` | Create movie | Admin |
+| GET | `/api/movies` | List/search/filter/sort/paginate movies | Public |
+| GET | `/api/movies/:id` | Get movie | Public |
+| PUT | `/api/movies/:id` | Update movie | Admin |
+| DELETE | `/api/movies/:id` | Delete movie | Admin |
+| POST | `/api/reviews` | Create review | Authenticated |
+| GET | `/api/reviews` | List reviews | Public |
+| GET | `/api/reviews/:id` | Get review | Public |
+| PUT | `/api/reviews/:id` | Update own review | Review owner |
+| DELETE | `/api/reviews/:id` | Delete own review | Review owner |
+| POST | `/api/favorites` | Add movie to favorites | Authenticated |
+| GET | `/api/favorites` | List own favorites | Authenticated |
+| DELETE | `/api/favorites/:movieId` | Remove favorite by movie ID | Authenticated |
+| GET | `/api/dashboard` | Counts, latest and top-rated movies | Admin |
+
+### Movie listing query parameters
+
+```http
+GET /api/movies?search=Interstellar&sort=rating&page=1&limit=5
+GET /api/movies?genre=YOUR_GENRE_ID
+```
+
+- `search`: case-insensitive title search
+- `genre`: filter by a MongoDB Genre ObjectId
+- `sort`: `latest`, `oldest`, or `rating`
+- `page`: positive integer, default `1`
+- `limit`: positive integer, default `5`, maximum `100`
+
+## Example requests
+
+### Register a user
+
+`POST /api/auth/register`
 
 ```json
 {
-    "name": "priya",
-    "email": "priya@gmail.com",
-    "password": "priya123"
+  "name": "Example User",
+  "email": "example.user@example.com",
+  "password": "choose-a-strong-test-password"
 }
 ```
 
-Copy the generated JWT Token.
+### Create a genre (admin)
 
----
-
-## 2. Login
-
-**POST**
-
-```http
-/api/auth/login
-```
-
-Body
+`POST /api/genres`
 
 ```json
 {
-    "email": "priya@gmail.com",
-    "password": "priya123"
+  "name": "Sci-Fi",
+  "description": "Science fiction movies"
 }
 ```
 
-Copy the Login Token.
+### Create a movie (admin)
 
----
-
-## 3. Get Profile
-
-**GET**
-
-```http
-/api/auth/profile
-```
-
-Authorization
-
-```text
-Bearer <LOGIN_TOKEN>
-```
-
----
-
-# 🎭 Genre Module
-
-## Create Genre
-
-**POST**
-
-```http
-/api/genres
-```
-
-Authorization
-
-```text
-Bearer <ADMIN_LOGIN_TOKEN>
-```
-
-Body
+`POST /api/movies`
 
 ```json
 {
-    "name": "Sci-Fi",
-    "description": "Sci-Fi Movies"
+  "title": "Interstellar",
+  "description": "Explorers travel through a wormhole in space.",
+  "releaseYear": 2014,
+  "duration": 169,
+  "language": "English",
+  "director": "Christopher Nolan",
+  "cast": ["Matthew McConaughey", "Anne Hathaway"],
+  "genre": ["YOUR_EXISTING_GENRE_ID"],
+  "poster": "https://example.com/movie.jpg",
+  "trailer": "https://example.com/trailer"
 }
 ```
 
-Copy the generated Genre ID.
+### Add a review (authenticated)
 
----
-
-## Get Genres
-
-**GET**
-
-```http
-/api/genres
-```
-
-Copy the Genre ID.
-
----
-
-# 🎬 Movie Module
-
-> Use the Genre ID from the Genre module.
-
-## Create Movie
-
-**POST**
-
-```http
-/api/movies
-```
-
-Authorization
-
-```text
-Bearer <ADMIN_LOGIN_TOKEN>
-```
-
-Body
+`POST /api/reviews`
 
 ```json
 {
-    "title": "Interstellar",
-    "description": "A team of explorers travel through a wormhole in space.",
-    "releaseYear": 2014,
-    "duration": 169,
-    "language": "English",
-    "director": "Christopher Nolan",
-    "cast": [
-        "Matthew McConaughey",
-        "Anne Hathaway",
-        "Jessica Chastain"
-    ],
-    "genre": [
-        "GENRE_ID"
-    ],
-    "poster": "https://example.com/interstellar.jpg",
-    "trailer": "https://youtube.com/example"
+  "movie": "YOUR_EXISTING_MOVIE_ID",
+  "rating": 5,
+  "review": "Excellent science fiction movie."
 }
 ```
 
-Copy the generated Movie ID.
+### Update a review (owner)
 
----
-
-## Get All Movies
-
-**GET**
-
-```http
-/api/movies
-```
-
----
-
-## Get Movie By ID
-
-**GET**
-
-```http
-/api/movies/:movieId
-```
-
----
-
-## Update Movie
-
-**PUT**
-
-```http
-/api/movies/:movieId
-```
-
-Authorization
-
-```text
-Bearer <ADMIN_LOGIN_TOKEN>
-```
-
----
-
-## Delete Movie
-
-**DELETE**
-
-```http
-/api/movies/:movieId
-```
-
-Authorization
-
-```text
-Bearer <ADMIN_LOGIN_TOKEN>
-```
-
----
-
-# ⭐ Review Module
-
-> Use the Movie ID from the Movie module.
-
-## Add Review
-
-**POST**
-
-```http
-/api/reviews
-```
-
-Authorization
-
-```text
-Bearer <USER_LOGIN_TOKEN>
-```
-
-Body
+`PUT /api/reviews/YOUR_REVIEW_ID`
 
 ```json
 {
-    "movie": "MOVIE_ID",
-    "rating": 5,
-    "review": "Outstanding movie with excellent visuals."
+  "rating": 4,
+  "review": "Still a great film."
 }
 ```
 
----
+### Add a favorite (authenticated)
 
-## Get Reviews
-
-**GET**
-
-```http
-/api/reviews
-```
-
-Copy the Review ID.
-
----
-
-## Update Review
-
-**PUT**
-
-```http
-/api/reviews/:reviewId
-```
-
-Authorization
-
-```text
-Bearer <USER_LOGIN_TOKEN>
-```
-
-Body
+`POST /api/favorites`
 
 ```json
 {
-    "rating": 4,
-    "review": "Good movie with excellent visuals."
+  "movie": "YOUR_EXISTING_MOVIE_ID"
 }
 ```
 
----
+## Database schemas and relationships
 
-## Delete Review
+| Collection | Principal fields | References |
+|---|---|---|
+| `users` | `name`, `email` (unique), `password` (hashed), `role` (`user`/`admin`), `profileImage`, `bio` | — |
+| `genres` | `name` (unique), `description` | — |
+| `movies` | `title`, `description`, `releaseYear`, `duration`, `language`, `director`, `cast`, `poster`, `trailer`, `averageRating` | `genre[] → Genre`, `createdBy → User` |
+| `reviews` | `rating` (1–5), `review` | `movie → Movie`, `user → User` |
+| `favorites` | user/movie pair, unique together | `movie → Movie`, `user → User` |
 
-**DELETE**
-
-```http
-/api/reviews/:reviewId
-```
-
-Authorization
-
-```text
-Bearer <USER_LOGIN_TOKEN>
-```
-
----
-
-# ❤️ Favorites Module
-
-> Use the Movie ID from the Movie module.
-
-## Add Favorite
-
-**POST**
-
-```http
-/api/favorites
-```
-
-Authorization
+All models define Mongoose timestamps (`createdAt`, `updatedAt`). MongoDB generates `_id` identifiers.
 
 ```text
-Bearer <USER_LOGIN_TOKEN>
+Genre  <──────── Movie ────────> User (creator)
+                   │
+                   │
+                   ▼
+                 Review ────────> User (reviewer)
+                   │
+Movie <──────── Favorite ───────> User (owner)
 ```
 
-Body
+One movie can have several genre references, reviews, and users who have favorited it. Each review belongs to one movie and one user. Favorites have a unique compound index on the movie/user combination.
+
+## Responses and validation
+
+Successful reads normally use HTTP `200`; creation uses `201`. Error responses use the project structure:
 
 ```json
 {
-    "movie": "MOVIE_ID"
+  "success": false,
+  "message": "Invalid movie ID"
 }
 ```
 
----
+Relevant status codes: `400` for invalid input or malformed IDs, `401` for missing/invalid JWTs, `403` for insufficient permission, `404` for missing resources/routes, `409` for duplicate-key database conflicts where handled, and `500` for unexpected server errors.
 
-## Get Favorites
+The server includes `middleware/validateMovie.js`, `validateReview.js`, `validateObjectId.js`, and `errorMiddleware.js`. Movie body validation enforces required string/number fields and validates genre ObjectId formats; it does not by itself guarantee every referenced genre exists in the database.
 
-**GET**
+## Postman testing
 
-```http
-/api/favorites
-```
+Import `Movie_Review_API_Cleaned.postman_collection.json` using **Postman → Import**. Configure the collection's local/current variables:
 
-Authorization
+- `baseUrl`: `http://localhost:5000`
+- `email`, `password`: test user login details (keep local/private)
+- `token`: current JWT returned by login (keep local/private)
+- `genreId`, `movieId`, `reviewId`: IDs of existing records
 
-```text
-Bearer <USER_LOGIN_TOKEN>
-```
+The collection includes positive CRUD requests, movie query tests, invalid ObjectId checks, invalid input checks, and HTTP status assertions. Database IDs and test data must be adjusted for your Atlas records. A successful collection import is not proof that every test has executed successfully; run and inspect the relevant requests in Postman. Run destructive DELETE requests only on disposable test records.
 
----
+Recommended smoke-test sequence: login → get profile → list genres → create genre (admin) → create movie (admin) → add review → get movie and inspect averageRating → update/delete review → favorites → validation/authorization tests. For repeatable runs, use distinct test data or reset disposable records.
 
-## Remove Favorite
-
-**DELETE**
-
-```http
-/api/favorites/:movieId
-```
-
-Authorization
+## Project structure
 
 ```text
-Bearer <USER_LOGIN_TOKEN>
+movie-review-api/
+├── app.js
+├── server.js
+├── config/
+├── controllers/
+├── middleware/
+├── models/
+├── routes/
+├── utils/
+├── package.json
+├── README.md
+└── Movie_Review_API_Cleaned.postman_collection.json
 ```
 
----
+## Security and submission notes
 
-# 🔐 Authorization
+- Do not submit `.env`, `node_modules`, real JWTs, database passwords, or real account passwords.
+- Add `.env` and `node_modules/` to `.gitignore`.
+- Rotate any JWT secret or test credentials previously shared outside your machine.
+- Confirm the final local source contains all recent fixes before producing the final ZIP or pushing to GitHub.
+- Confirm with your instructor that **Movie Review API** is an accepted topic if the approved list specifies **Movie Booking API**.
 
-| API             | Token Required |
-| --------------- | -------------- |
-| Register        | ❌ No           |
-| Login           | ❌ No           |
-| Profile         | ✅ Login Token  |
-| Create Genre    | ✅ Admin Token  |
-| Get Genres      | ❌ No           |
-| Create Movie    | ✅ Admin Token  |
-| Get Movies      | ❌ No           |
-| Update Movie    | ✅ Admin Token  |
-| Delete Movie    | ✅ Admin Token  |
-| Add Review      | ✅ User Token   |
-| Update Review   | ✅ User Token   |
-| Delete Review   | ✅ User Token   |
-| Add Favorite    | ✅ User Token   |
-| Get Favorites   | ✅ User Token   |
-| Remove Favorite | ✅ User Token   |
+## Known implementation limitations
 
----
-
-# 📌 API Flow
-
-```text
-Register User
-      ↓
-Login
-      ↓
-Get Profile
-      ↓
-Create Genre
-      ↓
-Get Genres
-      ↓
-Create Movie
-      ↓
-Get Movies
-      ↓
-Update/Delete Movie
-      ↓
-Add Review
-      ↓
-Get Reviews
-      ↓
-Update/Delete Review
-      ↓
-Add Favorite
-      ↓
-Get Favorites
-      ↓
-Remove Favorite
-```
-
----
-
-# 👨‍💻 Developed For
-
-This project is designed for learning:
-
-* Node.js
-* Express.js
-* MongoDB
-* Mongoose
-* JWT Authentication
-* REST APIs
-* CRUD Operations
-* MongoDB Relationships
-* Backend Development Best Practices
+This project is a learning-oriented backend, not a production-ready service. Its behavior depends on the latest local code. Before submission, verify that the authentication middleware rejects tokens for deleted users, all async controllers forward unexpected errors centrally, invalid filters/sorts are handled consistently, and deleting a movie does not leave unwanted orphan reviews/favorites.

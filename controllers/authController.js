@@ -2,8 +2,7 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
-const registerUser = async (req, res) => {
-    try {
+const registerUser = async (req, res, next) => {    try {
         const { name, email, password } = req.body;
         const existingUser = await User.findOne({ email });
 
@@ -37,14 +36,11 @@ const registerUser = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
+    next(error);
+}
 };
 
-const loginUser = async (req, res) => {
+const loginUser = async (req, res, next) => {
     try {
         const { email, password } = req.body;
 
@@ -81,11 +77,8 @@ const loginUser = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
+    next(error);
+}
 };
 
 const getProfile = async (req, res) => {

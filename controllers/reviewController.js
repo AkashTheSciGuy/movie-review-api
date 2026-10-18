@@ -1,37 +1,36 @@
 const Review = require("../models/Review");
 const Movie = require("../models/Movie");
 
+
 const updateMovieRating = async (movieId) => {
+    const mongoose = require("mongoose");
+
+    const objectId = new mongoose.Types.ObjectId(movieId.toString());
 
     const stats = await Review.aggregate([
         {
             $match: {
-                movie: movieId
+                movie: objectId
             }
         },
         {
             $group: {
                 _id: "$movie",
-                averageRating: {
-                    $avg: "$rating"
-                }
+                averageRating: { $avg: "$rating" }
             }
         }
     ]);
 
-    if (stats.length > 0) {
-        await Movie.findByIdAndUpdate(movieId, {
-            averageRating: stats[0].averageRating
-        });
-    } else {
-        await Movie.findByIdAndUpdate(movieId, {
-            averageRating: 0
-        });
-    }
+    const averageRating =
+        stats.length > 0 ? stats[0].averageRating : 0;
 
+    await Movie.findByIdAndUpdate(objectId, {
+        averageRating
+    });
 };
 
-const addReview = async (req, res) => {
+
+const addReview = async (req, res, next) => {
     try {
         const { movie, rating, review } = req.body;
 
@@ -71,14 +70,11 @@ const addReview = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
+    next(error);
+}
 };
 
-const getReviews = async (req, res) => {
+const getReviews = async (req, res, next) => {
     try {
 
         const reviews = await Review.find()
@@ -99,7 +95,7 @@ const getReviews = async (req, res) => {
     }
 };
 
-const updateReview = async (req, res) => {
+const updateReview = async (req, res, next) => {
 
     try {
 
@@ -133,17 +129,11 @@ const updateReview = async (req, res) => {
         });
 
     } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
+    next(error);
+}
 
 };
-const deleteReview = async (req, res) => {
-
+const deleteReview = async (req, res, next) => {
     try {
 
         const review = await Review.findById(req.params.id);
@@ -174,19 +164,48 @@ const deleteReview = async (req, res) => {
         });
 
     } catch (error) {
+    next(error);
+}
 
-        res.status(500).json({
-            success: false,
-            message: error.message
+};
+
+
+
+const getReviewById = async (req, res, next) => {
+    try {
+        const mongoose = require("mongoose");
+
+        if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid review ID"
+            });
+        }
+
+        const review = await Review.findById(req.params.id)
+            .populate("movie", "title poster")
+            .populate("user", "name email");
+
+        if (!review) {
+            return res.status(404).json({
+                success: false,
+                message: "Review not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: review
         });
-
-    }
-
+    } catch (error) {
+    next(error);
+}
 };
 
 module.exports = {
     addReview,
     getReviews,
+    getReviewById,
     updateReview,
     deleteReview
 };

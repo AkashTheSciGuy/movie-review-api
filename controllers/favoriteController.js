@@ -1,7 +1,7 @@
 const Favorite = require("../models/Favorite");
 const Movie = require("../models/Movie");
 
-const addFavorite = async (req, res) => {
+const addFavorite = async (req, res, next) => {
     try {
 
         const { movie } = req.body;
@@ -39,16 +39,11 @@ const addFavorite = async (req, res) => {
         });
 
     } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
+    next(error);
+}
 };
 
-const getFavorites = async (req, res) => {
+const getFavorites = async (req, res, next) => {
 
     try {
 
@@ -65,17 +60,12 @@ const getFavorites = async (req, res) => {
         });
 
     } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
+        next(error);
     }
 
 };
 
-const removeFavorite = async (req, res) => {
+const removeFavorite = async (req, res, next) => {
 
     try {
 
@@ -99,15 +89,10 @@ const removeFavorite = async (req, res) => {
         });
 
     } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
+        next(error);
     }
 
-};
+    }
 
 module.exports = {
     addFavorite,
